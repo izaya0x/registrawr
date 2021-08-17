@@ -1,0 +1,16 @@
+[package]
+name = "registrawr-core"
+authors = ["izaya0x <izaya0x@protonmail.com>"]
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+ethers = "0.2"
+ethers-signers = "0.2"
+ethers-middleware = "0.2"
+serde = "1.0"
+serde_json = "1.0"
+rpassword = "5.0"

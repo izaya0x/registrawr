@@ -1,0 +1,10 @@
+[package]
+name = "registrawr"
+authors = ["izaya0x <izaya0x@protonmail.com>"]
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+registrawr-core = { path = "../registrawr-core" }
+clap = "2.33"
+tokio = { version = "1", features = ["full"] }
