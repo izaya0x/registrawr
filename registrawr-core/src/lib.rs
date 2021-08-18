@@ -1,3 +1,5 @@
+mod ipfs;
+
 use ethers::{
     abi::Abi,
     contract::Contract,
@@ -6,9 +8,10 @@ use ethers::{
 };
 use ethers_middleware::SignerMiddleware;
 use ethers_signers::LocalWallet;
+use ipfs::publish_artifact;
 use rpassword;
 use serde::Deserialize;
-use std::convert::TryFrom;
+use std::{convert::TryFrom, path::Path};
 
 #[derive(Deserialize, Debug)]
 struct HardhatArtifact {
@@ -39,7 +42,15 @@ pub async fn list_dapps() -> Result<Vec<String>, Box<dyn std::error::Error>> {
     Ok(dapp_names)
 }
 
-pub async fn register_dapp(dapp_name: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn register_dapp(
+    dapp_name: &str,
+    asset_path: &Path,
+) -> Result<(), Box<dyn std::error::Error>> {
+    match publish_artifact(asset_path).await {
+        Ok(hash) => println!("content hash {}", hash),
+        Err(err) => println!("got error! {}", err),
+    }
+
     let wallet = unlock_wallet()?;
     let provider = Provider::<Http>::try_from("http://localhost:8545")?;
     let provider = SignerMiddleware::new(provider, wallet);

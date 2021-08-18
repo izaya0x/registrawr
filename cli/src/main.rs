@@ -1,6 +1,6 @@
 use clap::{App, Arg, SubCommand};
 use registrawr_core::{self, register_dapp};
-use std::error;
+use std::{error, path::Path};
 use tokio::runtime::Runtime;
 
 fn main() -> Result<(), Box<dyn error::Error>> {
@@ -20,6 +20,12 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                         .value_name("DAPP_NAME")
                         .help("Name of dapp to publish")
                         .takes_value(true)
+                        .required(true),
+                )
+                .arg(
+                    Arg::with_name("FILE_PATH")
+                        .help("Location of the source to publish")
+                        .index(1)
                         .required(true),
                 ),
         )
@@ -42,7 +48,10 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 rt.block_on(async {
                     println!("Publishing {} frontend...", dapp_name);
 
-                    register_dapp(dapp_name).await.unwrap();
+                    let artifact_file_path = matches.value_of("FILE_PATH").unwrap();
+                    register_dapp(dapp_name, &Path::new(artifact_file_path))
+                        .await
+                        .unwrap();
 
                     println!("Published!");
                 });
