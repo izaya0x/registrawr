@@ -12,11 +12,20 @@ contract Registrawr is ERC721URIStorage {
 
     constructor() ERC721("Registration", "RAWR") {}
 
-    function register(string memory name) public returns (uint256) {
+    function register(string memory name, string memory tokenURI)
+        public
+        returns (uint256)
+    {
+        console.log(
+            "Registering new dapp with name %s and tokenURI %s",
+            name,
+            tokenURI
+        );
         _tokenIds.increment();
 
         uint256 newRegId = _tokenIds.current();
-        _safeMint(msg.sender, newRegId);
+        _mint(msg.sender, newRegId);
+        _setTokenURI(newRegId, tokenURI);
 
         _dapps[newRegId] = name;
         return newRegId;
