@@ -11,8 +11,8 @@ use ethers::{
 };
 use ethers_middleware::SignerMiddleware;
 use ethers_signers::LocalWallet;
-use package::package_artifacts;
-use publish::{publish_artifact_from_tarball, publish_json};
+use package::{extract_artifcats, package_artifacts};
+use publish::{download_json, download_tarball, publish_artifact_from_tarball, publish_json};
 use rpassword;
 use serde::{Deserialize, Serialize};
 use std::{convert::TryFrom, path::Path};
@@ -39,6 +39,12 @@ const CONTRACT_ARTIFACT: &str =
 
 const CONTRACT_ADDRESSES: &str = include_str!("../../contracts/addresses.json");
 
+//TODO: Add Gzip compression(.tar.gz) to uploaded artifacts to save space and bandwidth
+// - Add build process to build the original frontend source using node/npm
+// - Add small web server to serve the static assets locally
+// - Add publish option right from github
+// - Extract git infromation when packaging (commit hash)
+
 pub async fn list_dapps() -> Result<Vec<String>, anyhow::Error> {
     let provider = Provider::<Http>::try_from("http://localhost:8545")?;
 
@@ -57,7 +63,12 @@ pub async fn register_dapp(dapp_name: &str, asset_path: &Path) -> Result<(), any
     let tarball = package_artifacts(asset_path);
     let tarball_cid = match publish_artifact_from_tarball(tarball).await {
         Ok(cid) => cid,
-        Err(_) => return Err(anyhow::anyhow!("Error publishing artifact as tarball!")),
+        Err(err) => {
+            return Err(anyhow::anyhow!(
+                "Error publishing artifact as tarball! {}",
+                err
+            ))
+        }
     };
 
     let json_data = PackageData {
@@ -89,7 +100,7 @@ pub async fn register_dapp(dapp_name: &str, asset_path: &Path) -> Result<(), any
     Ok(())
 }
 
-pub async fn get_dapp_data(_dapp_name: &str) -> Result<String, anyhow::Error> {
+pub async fn get_dapp(dapp_name: &str) -> Result<String, anyhow::Error> {
     let provider = Provider::<Http>::try_from("http://localhost:8545")?;
 
     let artifact: HardhatArtifact = serde_json::from_str(CONTRACT_ARTIFACT)?;
@@ -99,7 +110,16 @@ pub async fn get_dapp_data(_dapp_name: &str) -> Result<String, anyhow::Error> {
 
     let contract = Contract::new(address, artifact.abi, provider);
 
-    let message: String = contract.method::<_, _>("helloWorld", ())?.call().await?;
+    let message: String = contract
+        .method::<_, _>("getDapp", dapp_name.to_owned())?
+        .call()
+        .await?;
+
+    let package_data = download_json(message.clone()).await.unwrap();
+    let tarball = download_tarball(&package_data.asset_cid).await.unwrap();
+
+    extract_artifcats(&tarball);
+
     Ok(message)
 }
 

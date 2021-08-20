@@ -1,5 +1,6 @@
+use std::io::Cursor;
 use std::path::Path;
-use tar::Builder;
+use tar::{Archive, Builder};
 
 pub fn package_artifacts(asset_path: &Path) -> Vec<u8> {
     let mut buf = Vec::new();
@@ -20,4 +21,9 @@ pub fn package_artifacts(asset_path: &Path) -> Vec<u8> {
     }
 
     buf
+}
+
+pub fn extract_artifcats(tarball: &Vec<u8>) {
+    let mut ar = Archive::new(Cursor::new(tarball));
+    ar.unpack("testInstalledArtifacts").unwrap();
 }
