@@ -39,7 +39,7 @@ const CONTRACT_ARTIFACT: &str =
 
 const CONTRACT_ADDRESSES: &str = include_str!("../../contracts/addresses.json");
 
-//TODO: Add Gzip compression(.tar.gz) to uploaded artifacts to save space and bandwidth
+//TODO:
 // - Add build process to build the original frontend source using node/npm
 // - Add small web server to serve the static assets locally
 // - Add publish option right from github
@@ -95,8 +95,8 @@ pub async fn register_dapp(dapp_name: &str, asset_path: &Path) -> Result<(), any
     let call = contract.method::<_, H256>("register", (dapp_name.to_owned(), json_cid))?;
     let pending_tx = call.send().await?;
 
-    let receipt = pending_tx.confirmations(1).await?;
-    println!("tx receipt: {:#?}", receipt);
+    pending_tx.confirmations(1).await?;
+
     Ok(())
 }
 
