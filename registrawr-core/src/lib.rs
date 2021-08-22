@@ -3,6 +3,7 @@ mod error;
 mod package;
 mod publish;
 
+use build::build;
 use ethers::{
     abi::Abi,
     contract::Contract,
@@ -15,8 +16,10 @@ use package::{extract_artifcats, package_artifacts};
 use publish::{download_json, download_tarball, publish_artifact_from_tarball, publish_json};
 use rpassword;
 use serde::{Deserialize, Serialize};
-use std::{convert::TryFrom, path::Path};
-
+use std::{
+    convert::TryFrom,
+    path::{Path, PathBuf},
+};
 #[derive(Deserialize, Debug)]
 struct HardhatArtifact {
     pub abi: Abi,
@@ -40,7 +43,6 @@ const CONTRACT_ARTIFACT: &str =
 const CONTRACT_ADDRESSES: &str = include_str!("../../contracts/addresses.json");
 
 //TODO:
-// - Add build process to build the original frontend source using node/npm
 // - Add small web server to serve the static assets locally
 // - Add publish option right from github
 // - Extract git infromation when packaging (commit hash)
@@ -57,6 +59,10 @@ pub async fn list_dapps() -> Result<Vec<String>, anyhow::Error> {
 
     let dapp_names: Vec<String> = contract.method::<_, _>("listDapps", ())?.call().await?;
     Ok(dapp_names)
+}
+
+pub fn build_dapp(source_path: &Path) -> PathBuf {
+    build(source_path)
 }
 
 pub async fn register_dapp(dapp_name: &str, asset_path: &Path) -> Result<(), anyhow::Error> {

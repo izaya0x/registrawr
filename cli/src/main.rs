@@ -1,5 +1,5 @@
 use clap::{App, Arg, SubCommand};
-use registrawr_core::{get_dapp, list_dapps, register_dapp};
+use registrawr_core::{build_dapp, get_dapp, list_dapps, register_dapp};
 use std::{error, path::Path};
 use tokio::runtime::Runtime;
 
@@ -71,10 +71,10 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 rt.block_on(async {
                     println!("Publishing {} frontend...", dapp_name);
 
-                    let artifact_file_path = matches.value_of("FILE_PATH").unwrap();
-                    register_dapp(dapp_name, &Path::new(artifact_file_path))
-                        .await
-                        .unwrap();
+                    let source_path = matches.value_of("FILE_PATH").unwrap();
+                    let artifact_path = build_dapp(&Path::new(source_path));
+                    println!("Artifacts built to: {}", artifact_path.display());
+                    register_dapp(dapp_name, &artifact_path).await.unwrap();
 
                     println!("Published!");
                 });

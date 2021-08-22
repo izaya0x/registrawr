@@ -6,6 +6,7 @@ use std::path::Path;
 use tar::{Archive, Builder};
 
 pub fn package_artifacts(asset_path: &Path) -> Vec<u8> {
+    println!("packaging {}", asset_path.display());
     let mut tarball = Vec::new();
     {
         let mut builder = Builder::new(&mut tarball);
@@ -18,6 +19,8 @@ pub fn package_artifacts(asset_path: &Path) -> Vec<u8> {
             builder
                 .append_path(asset_path)
                 .expect("Error adding file to archive");
+        } else {
+            panic!("Error: Asset path is neither a directory or a file");
         }
 
         builder.finish().expect("Failed to create tar file");
