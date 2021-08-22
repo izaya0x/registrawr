@@ -43,9 +43,10 @@ const CONTRACT_ARTIFACT: &str =
 const CONTRACT_ADDRESSES: &str = include_str!("../../contracts/addresses.json");
 
 //TODO:
-// - Add small web server to serve the static assets locally
 // - Add publish option right from github
 // - Extract git infromation when packaging (commit hash)
+// - Add SqlLite support for tracking installed dapps
+// - Add config file support
 
 pub async fn list_dapps() -> Result<Vec<String>, anyhow::Error> {
     let provider = Provider::<Http>::try_from("http://localhost:8545")?;
