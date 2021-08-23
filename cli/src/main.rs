@@ -1,6 +1,11 @@
+use actix_files as fs;
+use actix_web;
 use clap::{App, Arg, SubCommand};
 use registrawr_core::{build_dapp, get_dapp, list_dapps, register_dapp};
-use std::{error, path::Path};
+use std::{
+    error,
+    path::{Path, PathBuf},
+};
 use tokio::runtime::Runtime;
 
 fn main() -> Result<(), Box<dyn error::Error>> {
@@ -35,6 +40,16 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 .arg(
                     Arg::with_name("FILE_PATH")
                         .help("Location of the source to publish")
+                        .index(1)
+                        .required(true),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("run")
+                .about("Run a local copy of the installed frontend")
+                .arg(
+                    Arg::with_name("DAPP_NAME")
+                        .help("Name of dapp to run")
                         .index(1)
                         .required(true),
                 ),
@@ -83,5 +98,31 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         }
     }
 
+    if let Some(matches) = matches.subcommand_matches("run") {
+        match matches.value_of("DAPP_NAME") {
+            Some(dapp_name) => {
+                println!("Serving {}...", dapp_name);
+                run_server(PathBuf::from("./testInstalledArtifacts"));
+            }
+            None => println!("Error: No dapp given to install"),
+        }
+    }
+
     Ok(())
+}
+
+fn run_server(server_files: PathBuf) {
+    let mut rt = actix_web::rt::System::new("test");
+
+    rt.block_on(async move {
+        actix_web::HttpServer::new(move || {
+            actix_web::App::new()
+                .service(fs::Files::new("/", server_files.clone()).index_file("index.html"))
+        })
+        .bind("127.0.0.1:3000")
+        .unwrap()
+        .run()
+        .await
+    })
+    .unwrap();
 }
