@@ -1,8 +1,7 @@
 #[macro_use]
 extern crate diesel;
 
-mod models;
-mod schema;
+mod db;
 
 use actix_files as fs;
 use actix_web;
@@ -77,14 +76,10 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
     if let Some(matches) = matches.subcommand_matches("list") {
         rt.block_on(async {
-            use self::schema::dapps;
-
             let dapps = if matches.is_present("installed") {
                 println!("Getting locally installed dapps...");
-                let results = dapps::table
-                    .load::<models::Dapp>(&connection)
-                    .expect("Error loading dapps");
 
+                let results = db::get_installed_dapps(&connection);
                 results.iter().map(|dapp| dapp.name.clone()).collect::<_>()
             } else {
                 println!("Getting registerd dapps...");
@@ -103,6 +98,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 rt.block_on(async {
                     println!("Installing {}", dapp_name);
                     let dapp_data = get_dapp(dapp_name).await.unwrap();
+                    // db::insert_installed_dapp(&connection, dapp_name, "0.1.0");
                     println!("{}", dapp_data);
                 });
             }
