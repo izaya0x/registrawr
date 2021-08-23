@@ -1,20 +1,39 @@
+#[macro_use]
+extern crate diesel;
+
+mod models;
+mod schema;
+
 use actix_files as fs;
 use actix_web;
 use clap::{App, Arg, SubCommand};
+use diesel::prelude::*;
+use dotenv::dotenv;
 use registrawr_core::{build_dapp, get_dapp, list_dapps, register_dapp};
 use std::{
-    error,
+    env, error,
     path::{Path, PathBuf},
 };
 use tokio::runtime::Runtime;
 
 fn main() -> Result<(), Box<dyn error::Error>> {
     let rt = Runtime::new()?;
+    let connection = establish_db_connection();
+
     let matches = App::new("registrawr")
         .version("0.1")
         .author("Izaya0x <izaya0x@protonmail.com>")
         .about("Distributed tool for downloading Dapp frontends")
-        .subcommand(SubCommand::with_name("list").about("lists all registered dapp frontends"))
+        .subcommand(
+            SubCommand::with_name("list")
+                .about("lists all registered dapp frontends")
+                .arg(
+                    Arg::with_name("installed")
+                        .short("i")
+                        .long("installed")
+                        .help("List locally installed dapps"),
+                ),
+        )
         .subcommand(
             SubCommand::with_name("install")
                 .about("install dapp from registry")
@@ -56,11 +75,22 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         )
         .get_matches();
 
-    if let Some(_) = matches.subcommand_matches("list") {
+    if let Some(matches) = matches.subcommand_matches("list") {
         rt.block_on(async {
-            println!("Getting registerd dapps...");
+            use self::schema::dapps;
 
-            let dapps = list_dapps().await.unwrap();
+            let dapps = if matches.is_present("installed") {
+                println!("Getting locally installed dapps...");
+                let results = dapps::table
+                    .load::<models::Dapp>(&connection)
+                    .expect("Error loading dapps");
+
+                results.iter().map(|dapp| dapp.name.clone()).collect::<_>()
+            } else {
+                println!("Getting registerd dapps...");
+                list_dapps().await.unwrap()
+            };
+
             for dapp in dapps {
                 println!("{}", dapp);
             }
@@ -125,4 +155,12 @@ fn run_server(server_files: PathBuf) {
         .await
     })
     .unwrap();
+}
+
+fn establish_db_connection() -> SqliteConnection {
+    dotenv().ok();
+
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    SqliteConnection::establish(&database_url)
+        .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
 }

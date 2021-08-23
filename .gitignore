@@ -7,3 +7,6 @@ testInstalledArtifacts
 wallet.json
 
 generateJsonKeystore.js
+
+# Local test database
+test.db
