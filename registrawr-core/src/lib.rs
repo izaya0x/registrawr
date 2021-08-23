@@ -59,6 +59,10 @@ pub async fn list_dapps() -> Result<Vec<String>, anyhow::Error> {
     let contract = Contract::new(address, artifact.abi, provider);
 
     let dapp_names: Vec<String> = contract.method::<_, _>("listDapps", ())?.call().await?;
+    let dapp_names = dapp_names
+        .into_iter()
+        .filter(|elem| elem != &String::from(""))
+        .collect::<Vec<String>>();
     Ok(dapp_names)
 }
 
