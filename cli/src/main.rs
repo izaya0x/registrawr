@@ -77,12 +77,9 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     if let Some(matches) = matches.subcommand_matches("list") {
         rt.block_on(async {
             let dapps = if matches.is_present("installed") {
-                println!("Getting locally installed dapps...");
-
                 let results = db::get_installed_dapps(&connection);
                 results.iter().map(|dapp| dapp.name.clone()).collect::<_>()
             } else {
-                println!("Getting registerd dapps...");
                 list_dapps().await.unwrap()
             };
 
@@ -127,7 +124,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                     println!("Artifacts built to: {}", artifact_path.display());
                     register_dapp(dapp_name, &artifact_path).await.unwrap();
 
-                    println!("Published!");
+                    println!("done!");
                 });
             }
             None => println!("Error: No dapp name provided for publishing!"),

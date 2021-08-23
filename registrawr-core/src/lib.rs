@@ -45,7 +45,6 @@ const CONTRACT_ADDRESSES: &str = include_str!("../../contracts/addresses.json");
 //TODO:
 // - Add publish option right from github
 // - Extract git infromation when packaging (commit hash)
-// - Add SqlLite support for tracking installed dapps
 // - Add config file support
 
 pub async fn list_dapps() -> Result<Vec<String>, anyhow::Error> {
