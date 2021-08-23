@@ -33,12 +33,12 @@ pub fn package_artifacts(asset_path: &Path) -> Vec<u8> {
     buf.finish().expect("Error compressing the tarball")
 }
 
-pub fn extract_artifcats(compressed_tarball: &Vec<u8>) {
+pub fn extract_artifcats(compressed_tarball: &Vec<u8>, install_location: &Path) {
     let mut d = GzDecoder::new(Cursor::new(compressed_tarball));
     let mut tarball = vec![];
     d.read_to_end(&mut tarball)
         .expect("Error decompressing to tarball");
 
     let mut ar = Archive::new(Cursor::new(tarball));
-    ar.unpack("testInstalledArtifacts").unwrap();
+    ar.unpack(install_location).unwrap();
 }

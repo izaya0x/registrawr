@@ -31,10 +31,10 @@ struct ContractAddresses {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct PackageData {
-    name: String,
-    version: String,
-    asset_cid: String,
+pub struct PackageData {
+    pub name: String,
+    pub version: String,
+    pub asset_cid: String,
 }
 
 const CONTRACT_ARTIFACT: &str =
@@ -45,7 +45,6 @@ const CONTRACT_ADDRESSES: &str = include_str!("../../contracts/addresses.json");
 //TODO:
 // - Add publish option right from github
 // - Extract git infromation when packaging (commit hash)
-// - Add SqlLite support for tracking installed dapps
 // - Add config file support
 
 pub async fn list_dapps() -> Result<Vec<String>, anyhow::Error> {
@@ -59,6 +58,10 @@ pub async fn list_dapps() -> Result<Vec<String>, anyhow::Error> {
     let contract = Contract::new(address, artifact.abi, provider);
 
     let dapp_names: Vec<String> = contract.method::<_, _>("listDapps", ())?.call().await?;
+    let dapp_names = dapp_names
+        .into_iter()
+        .filter(|elem| elem != &String::from(""))
+        .collect::<Vec<String>>();
     Ok(dapp_names)
 }
 
@@ -107,7 +110,10 @@ pub async fn register_dapp(dapp_name: &str, asset_path: &Path) -> Result<(), any
     Ok(())
 }
 
-pub async fn get_dapp(dapp_name: &str) -> Result<String, anyhow::Error> {
+pub async fn get_dapp(
+    dapp_name: &str,
+    mut install_root: PathBuf,
+) -> Result<(PathBuf, PackageData), anyhow::Error> {
     let provider = Provider::<Http>::try_from("http://localhost:8545")?;
 
     let artifact: HardhatArtifact = serde_json::from_str(CONTRACT_ARTIFACT)?;
@@ -125,9 +131,12 @@ pub async fn get_dapp(dapp_name: &str) -> Result<String, anyhow::Error> {
     let package_data = download_json(message.clone()).await.unwrap();
     let tarball = download_tarball(&package_data.asset_cid).await.unwrap();
 
-    extract_artifcats(&tarball);
+    install_root.push(dapp_name);
+    let install_location = install_root;
 
-    Ok(message)
+    extract_artifcats(&tarball, &install_location);
+
+    Ok((install_location, package_data))
 }
 
 fn unlock_wallet() -> Result<LocalWallet, anyhow::Error> {

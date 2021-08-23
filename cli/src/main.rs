@@ -1,20 +1,38 @@
+#[macro_use]
+extern crate diesel;
+
+mod db;
+
 use actix_files as fs;
 use actix_web;
 use clap::{App, Arg, SubCommand};
+use diesel::prelude::*;
+use dotenv::dotenv;
 use registrawr_core::{build_dapp, get_dapp, list_dapps, register_dapp};
 use std::{
-    error,
+    env, error,
     path::{Path, PathBuf},
 };
 use tokio::runtime::Runtime;
 
 fn main() -> Result<(), Box<dyn error::Error>> {
     let rt = Runtime::new()?;
+    let connection = establish_db_connection();
+
     let matches = App::new("registrawr")
         .version("0.1")
         .author("Izaya0x <izaya0x@protonmail.com>")
         .about("Distributed tool for downloading Dapp frontends")
-        .subcommand(SubCommand::with_name("list").about("lists all registered dapp frontends"))
+        .subcommand(
+            SubCommand::with_name("list")
+                .about("lists all registered dapp frontends")
+                .arg(
+                    Arg::with_name("installed")
+                        .short("i")
+                        .long("installed")
+                        .help("List locally installed dapps"),
+                ),
+        )
         .subcommand(
             SubCommand::with_name("install")
                 .about("install dapp from registry")
@@ -56,11 +74,15 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         )
         .get_matches();
 
-    if let Some(_) = matches.subcommand_matches("list") {
+    if let Some(matches) = matches.subcommand_matches("list") {
         rt.block_on(async {
-            println!("Getting registerd dapps...");
+            let dapps = if matches.is_present("installed") {
+                let results = db::get_installed_dapps(&connection);
+                results.iter().map(|dapp| dapp.name.clone()).collect::<_>()
+            } else {
+                list_dapps().await.unwrap()
+            };
 
-            let dapps = list_dapps().await.unwrap();
             for dapp in dapps {
                 println!("{}", dapp);
             }
@@ -72,8 +94,19 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             Some(dapp_name) => {
                 rt.block_on(async {
                     println!("Installing {}", dapp_name);
-                    let dapp_data = get_dapp(dapp_name).await.unwrap();
-                    println!("{}", dapp_data);
+                    let mut install_root =
+                        env::current_dir().expect("Error getting current directory");
+                    install_root.push("testInstalledArtifacts");
+
+                    let (install_location, dapp_data) =
+                        get_dapp(dapp_name, install_root).await.unwrap();
+                    db::insert_installed_dapp(
+                        &connection,
+                        &dapp_data.name,
+                        &dapp_data.version,
+                        &install_location,
+                    );
+                    println!("done!");
                 });
             }
             None => println!("Error: No dapp given to install"),
@@ -91,7 +124,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                     println!("Artifacts built to: {}", artifact_path.display());
                     register_dapp(dapp_name, &artifact_path).await.unwrap();
 
-                    println!("Published!");
+                    println!("done!");
                 });
             }
             None => println!("Error: No dapp name provided for publishing!"),
@@ -102,7 +135,8 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         match matches.value_of("DAPP_NAME") {
             Some(dapp_name) => {
                 println!("Serving {}...", dapp_name);
-                run_server(PathBuf::from("./testInstalledArtifacts"));
+                let dapp = db::get_installed_dapp(&connection, dapp_name);
+                run_server(PathBuf::from(dapp.install_location));
             }
             None => println!("Error: No dapp given to install"),
         }
@@ -125,4 +159,12 @@ fn run_server(server_files: PathBuf) {
         .await
     })
     .unwrap();
+}
+
+fn establish_db_connection() -> SqliteConnection {
+    dotenv().ok();
+
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    SqliteConnection::establish(&database_url)
+        .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
 }
