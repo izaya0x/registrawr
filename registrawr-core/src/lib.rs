@@ -111,7 +111,10 @@ pub async fn register_dapp(dapp_name: &str, asset_path: &Path) -> Result<(), any
     Ok(())
 }
 
-pub async fn get_dapp(dapp_name: &str) -> Result<PackageData, anyhow::Error> {
+pub async fn get_dapp(
+    dapp_name: &str,
+    mut install_root: PathBuf,
+) -> Result<(PathBuf, PackageData), anyhow::Error> {
     let provider = Provider::<Http>::try_from("http://localhost:8545")?;
 
     let artifact: HardhatArtifact = serde_json::from_str(CONTRACT_ARTIFACT)?;
@@ -129,9 +132,12 @@ pub async fn get_dapp(dapp_name: &str) -> Result<PackageData, anyhow::Error> {
     let package_data = download_json(message.clone()).await.unwrap();
     let tarball = download_tarball(&package_data.asset_cid).await.unwrap();
 
-    extract_artifcats(&tarball);
+    install_root.push(dapp_name);
+    let install_location = install_root;
 
-    Ok(package_data)
+    extract_artifcats(&tarball, &install_location);
+
+    Ok((install_location, package_data))
 }
 
 fn unlock_wallet() -> Result<LocalWallet, anyhow::Error> {

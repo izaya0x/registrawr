@@ -97,14 +97,19 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             Some(dapp_name) => {
                 rt.block_on(async {
                     println!("Installing {}", dapp_name);
-                    let dapp_data = get_dapp(dapp_name).await.unwrap();
+                    let mut install_root =
+                        env::current_dir().expect("Error getting current directory");
+                    install_root.push("testInstalledArtifacts");
+
+                    let (install_location, dapp_data) =
+                        get_dapp(dapp_name, install_root).await.unwrap();
                     db::insert_installed_dapp(
                         &connection,
                         &dapp_data.name,
                         &dapp_data.version,
-                        &PathBuf::from("./testInstalledArtifacts"),
+                        &install_location,
                     );
-                    println!("{}", dapp_data.name);
+                    println!("done!");
                 });
             }
             None => println!("Error: No dapp given to install"),
