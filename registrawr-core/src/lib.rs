@@ -31,10 +31,10 @@ struct ContractAddresses {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct PackageData {
-    name: String,
-    version: String,
-    asset_cid: String,
+pub struct PackageData {
+    pub name: String,
+    pub version: String,
+    pub asset_cid: String,
 }
 
 const CONTRACT_ARTIFACT: &str =
@@ -111,7 +111,7 @@ pub async fn register_dapp(dapp_name: &str, asset_path: &Path) -> Result<(), any
     Ok(())
 }
 
-pub async fn get_dapp(dapp_name: &str) -> Result<String, anyhow::Error> {
+pub async fn get_dapp(dapp_name: &str) -> Result<PackageData, anyhow::Error> {
     let provider = Provider::<Http>::try_from("http://localhost:8545")?;
 
     let artifact: HardhatArtifact = serde_json::from_str(CONTRACT_ARTIFACT)?;
@@ -131,7 +131,7 @@ pub async fn get_dapp(dapp_name: &str) -> Result<String, anyhow::Error> {
 
     extract_artifcats(&tarball);
 
-    Ok(message)
+    Ok(package_data)
 }
 
 fn unlock_wallet() -> Result<LocalWallet, anyhow::Error> {

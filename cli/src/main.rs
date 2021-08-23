@@ -99,7 +99,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                     println!("Installing {}", dapp_name);
                     let dapp_data = get_dapp(dapp_name).await.unwrap();
                     // db::insert_installed_dapp(&connection, dapp_name, "0.1.0");
-                    println!("{}", dapp_data);
+                    println!("{}", dapp_data.name);
                 });
             }
             None => println!("Error: No dapp given to install"),
