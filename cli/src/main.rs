@@ -1,5 +1,7 @@
 #[macro_use]
 extern crate diesel;
+#[macro_use]
+extern crate diesel_migrations;
 
 mod db;
 
@@ -16,8 +18,11 @@ use std::{
 use tokio::runtime::Runtime;
 
 fn main() -> Result<(), Box<dyn error::Error>> {
+    embed_migrations!();
+
     let rt = Runtime::new()?;
     let connection = establish_db_connection();
+    embedded_migrations::run(&connection).expect("Failed to run DB migraitons!");
 
     let matches = App::new("registrawr")
         .version("0.1")
