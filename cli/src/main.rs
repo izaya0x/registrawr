@@ -98,7 +98,12 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 rt.block_on(async {
                     println!("Installing {}", dapp_name);
                     let dapp_data = get_dapp(dapp_name).await.unwrap();
-                    // db::insert_installed_dapp(&connection, dapp_name, "0.1.0");
+                    db::insert_installed_dapp(
+                        &connection,
+                        &dapp_data.name,
+                        &dapp_data.version,
+                        &PathBuf::from("./testInstalledArtifacts"),
+                    );
                     println!("{}", dapp_data.name);
                 });
             }
@@ -128,7 +133,8 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         match matches.value_of("DAPP_NAME") {
             Some(dapp_name) => {
                 println!("Serving {}...", dapp_name);
-                run_server(PathBuf::from("./testInstalledArtifacts"));
+                let dapp = db::get_installed_dapp(&connection, dapp_name);
+                run_server(PathBuf::from(dapp.install_location));
             }
             None => println!("Error: No dapp given to install"),
         }

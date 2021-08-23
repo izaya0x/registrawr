@@ -1,10 +1,14 @@
 use super::schema::dapps;
+use chrono::NaiveDateTime;
 
-#[derive(Queryable)]
+#[derive(Queryable, Debug)]
 pub struct Dapp {
     pub id: i32,
     pub name: String,
     pub version: String,
+    pub install_location: String,
+    pub installed_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
 }
 
 #[derive(Insertable)]
@@ -12,4 +16,5 @@ pub struct Dapp {
 pub struct NewDapp<'a> {
     pub name: &'a str,
     pub version: &'a str,
+    pub install_location: &'a str,
 }
